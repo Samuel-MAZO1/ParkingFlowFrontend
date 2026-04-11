@@ -1,121 +1,78 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState } from 'react';
+import { useAuth } from './store/authStore';
+import { AuthPage } from './pages/AuthPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { CapacityPage } from './pages/CapacityPage';
+import { RatesPage } from './pages/RatesPage';
+import { PlaceholderPage } from './pages/PlaceholderPage';
+import { DashboardLayout } from './components/templates/DashboardLayout';
 
-function App() {
-  const [count, setCount] = useState(0)
+const PAGE_META: Record<string, { title: string; subtitle?: string }> = {
+  dashboard:     { title: 'Dashboard',        subtitle: 'Overview and quick stats' },
+  capacity:      { title: 'Capacity',         subtitle: 'Configure spaces per vehicle type — US-004' },
+  rates:         { title: 'Rates',            subtitle: 'Manage parking tariffs — US-005' },
+  plans:         { title: 'Subscriber Plans', subtitle: 'Manage monthly plans — US-006' },
+  vehicles:      { title: 'My Vehicles',      subtitle: 'Register and manage vehicles — US-007 / US-008' },
+  subscriptions: { title: 'Subscriptions',    subtitle: 'Manage your subscription — US-009 / US-010 / US-011' },
+  parking:       { title: 'Parking Entry',    subtitle: 'Register entries and exits — US-013 / US-014 / US-015' },
+  active:        { title: 'Active Vehicles',  subtitle: 'Currently parked — US-017' },
+  history:       { title: 'My History',       subtitle: 'Parking history — US-018' },
+  reports:       { title: 'Reports',          subtitle: 'Revenue and occupancy reports — US-019 / US-020' },
+};
+
+function AppInner() {
+  const { isAuthenticated, user } = useAuth();
+  const [activePage, setActivePage] = useState('dashboard');
+
+  if (!isAuthenticated) {
+    return <AuthPage onAuthenticated={() => setActivePage('dashboard')} />;
+  }
+
+  const meta = PAGE_META[activePage] ?? { title: activePage };
+
+  function renderPage() {
+    switch (activePage) {
+      case 'dashboard':
+        return <DashboardPage />;
+      case 'capacity':
+        return user?.rol === 'ADMIN'
+          ? <CapacityPage />
+          : <PlaceholderPage title="Unauthorized" icon="⊗" />;
+      case 'rates':
+        return user?.rol === 'ADMIN'
+          ? <RatesPage />
+          : <PlaceholderPage title="Unauthorized" icon="⊗" />;
+      case 'plans':
+        return <PlaceholderPage title="Subscriber Plans" icon="◇" storyId="US-006" />;
+      case 'vehicles':
+        return <PlaceholderPage title="My Vehicles" icon="◉" storyId="US-007 / US-008" />;
+      case 'subscriptions':
+        return <PlaceholderPage title="Subscriptions" icon="◈" storyId="US-009 / US-010 / US-011" />;
+      case 'parking':
+        return <PlaceholderPage title="Parking Entry / Exit" icon="▷" storyId="US-013 / US-014 / US-015" />;
+      case 'active':
+        return <PlaceholderPage title="Active Vehicles" icon="⊡" storyId="US-017" />;
+      case 'history':
+        return <PlaceholderPage title="My Parking History" icon="≡" storyId="US-018" />;
+      case 'reports':
+        return <PlaceholderPage title="Reports" icon="◫" storyId="US-019 / US-020" />;
+      default:
+        return <DashboardPage />;
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <DashboardLayout
+      title={meta.title}
+      subtitle={meta.subtitle}
+      activePage={activePage}
+      onNavigate={setActivePage}
+    >
+      {renderPage()}
+    </DashboardLayout>
+  );
 }
 
-export default App
+export default function App() {
+  return <AppInner />;
+}
