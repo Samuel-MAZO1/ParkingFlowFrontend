@@ -1,4 +1,3 @@
-import React from 'react';
 import { Card } from '../components/atoms/Card';
 
 interface PlaceholderPageProps {

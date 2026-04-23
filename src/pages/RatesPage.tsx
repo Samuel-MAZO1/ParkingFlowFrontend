@@ -1,4 +1,3 @@
-import React from 'react';
 import { RatesManager } from '../components/organisms/RatesManager';
 
 export function RatesPage() {

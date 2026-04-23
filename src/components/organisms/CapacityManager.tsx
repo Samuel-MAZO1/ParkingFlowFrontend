@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { VehicleType, CapacityConfig } from '../../types';
+import { useEffect, useState } from 'react';
+import type { VehicleType, CapacityConfig } from '../../types';
 import { capacityService } from '../../services/api';
 import { CapacityCard } from '../molecules/CapacityCard';
 import { AlertMessage } from '../molecules/AlertMessage';

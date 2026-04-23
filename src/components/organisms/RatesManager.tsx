@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Rate, CreateRateRequest, VehicleType } from '../../types';
+import { useEffect, useState } from 'react';
+import type { Rate, CreateRateRequest} from '../../types';
 import { rateService } from '../../services/api';
 import { RateRow } from '../molecules/RateRow';
 import { AlertMessage } from '../molecules/AlertMessage';

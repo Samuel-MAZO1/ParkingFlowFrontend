@@ -1,5 +1,5 @@
-import React from 'react';
-import { Rate, VehicleType } from '../../types';
+
+import type { Rate, VehicleType } from '../../types';
 import { Badge } from '../atoms/Badge';
 import { Button } from '../atoms/Button';
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { CapacityManager } from '../components/organisms/CapacityManager';
 
 export function CapacityPage() {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Rate, CreateRateRequest, VehicleType } from '../../types';
+import type { Rate, CreateRateRequest, VehicleType } from '../../types';
 import { Input } from '../atoms/Input';
 import { Select } from '../atoms/Select';
 import { Button } from '../atoms/Button';

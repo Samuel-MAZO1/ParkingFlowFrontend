@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { VehicleType, CapacityConfig } from '../../types';
+import { useState } from 'react';
+import type { VehicleType, CapacityConfig } from '../../types';
 import { Card } from '../atoms/Card';
 import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';

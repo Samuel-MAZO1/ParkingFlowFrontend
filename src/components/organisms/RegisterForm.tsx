@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RegisterRequest } from '../../types';
+import type { RegisterRequest } from '../../types';
 import { Input } from '../atoms/Input';
 import { Button } from '../atoms/Button';
 import { AlertMessage } from '../molecules/AlertMessage';

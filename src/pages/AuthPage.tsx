@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import  { useState } from 'react';
 import { AuthLayout } from '../components/templates/AuthLayout';
 import { LoginForm } from '../components/organisms/LoginForm';
 import { RegisterForm } from '../components/organisms/RegisterForm';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useAuth } from '../store/authStore';
 import { Card } from '../components/atoms/Card';
 import { Badge } from '../components/atoms/Badge';
