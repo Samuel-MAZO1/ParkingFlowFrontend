@@ -2,10 +2,17 @@ import { CapacityManager } from '../components/organisms/CapacityManager';
 
 export function CapacityPage() {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="bg-teal-500/5 border border-teal-500/15 rounded-xl px-4 py-3 text-sm text-teal-600">
-        ⚠ Capacity cannot be set below the number of currently parked vehicles for each type.
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-black text-slate-100 tracking-tight">
+          Capacidad del Parqueadero
+        </h1>
+        <p className="text-sm text-slate-400 mt-1">
+          Configura y monitorea la disponibilidad física y el aforo de celdas en tiempo real.
+        </p>
       </div>
+
+      {/* Renderiza el organismo conectado directamente a la base de datos mediante Axios/Fetch */}
       <CapacityManager />
     </div>
   );

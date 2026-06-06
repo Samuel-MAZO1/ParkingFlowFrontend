@@ -6,18 +6,22 @@ import { CapacityPage } from './pages/CapacityPage';
 import { RatesPage } from './pages/RatesPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { DashboardLayout } from './components/templates/DashboardLayout';
+import { ParkingPage } from './pages/ParkingPage';
+import { PlansPage } from './pages/PlansPage';
+import { VehiclesPage } from './pages/VehiclesPage';
+import { SubscriptionsPage } from './pages/SubscriptionsPage';
 
-const PAGE_META: Record<string, { title: string; subtitle?: string }> = {
-  dashboard:     { title: 'Dashboard',        subtitle: 'Overview and quick stats' },
-  capacity:      { title: 'Capacity',         subtitle: 'Configure spaces per vehicle type — US-004' },
-  rates:         { title: 'Rates',            subtitle: 'Manage parking tariffs — US-005' },
-  plans:         { title: 'Subscriber Plans', subtitle: 'Manage monthly plans — US-006' },
-  vehicles:      { title: 'My Vehicles',      subtitle: 'Register and manage vehicles — US-007 / US-008' },
-  subscriptions: { title: 'Subscriptions',    subtitle: 'Manage your subscription — US-009 / US-010 / US-011' },
-  parking:       { title: 'Parking Entry',    subtitle: 'Register entries and exits — US-013 / US-014 / US-015' },
-  active:        { title: 'Active Vehicles',  subtitle: 'Currently parked — US-017' },
-  history:       { title: 'My History',       subtitle: 'Parking history — US-018' },
-  reports:       { title: 'Reports',          subtitle: 'Revenue and occupancy reports — US-019 / US-020' },
+const PAGE_META: Record<string, { title: string; subtitle: string }> = {
+  dashboard: { title: 'Panel Principal', subtitle: 'Vista general del estado del parqueadero' },
+  capacity: { title: 'Configurar Capacidad', subtitle: 'Gestión de cupos por tipo de vehículo (ADMIN)' },
+  rates: { title: 'Tarifas del Sistema', subtitle: 'Administración de costos por hora y día (ADMIN)' },
+  plans: { title: 'Planes de Abonados', subtitle: 'CRUD de suscripciones mensuales (ADMIN)' },
+  vehicles: { title: 'Mis Vehículos', subtitle: 'Registro y gestión de tus automotores (ABONADO)' },
+  subscriptions: { title: 'Suscripciones', subtitle: 'Adquirir y renovar tus mensualidades (ABONADO)' },
+  parking: { title: 'Registro de Estacionamiento', subtitle: 'Control de entradas, salidas y cobros' },
+  active: { title: 'Vehículos Estacionados', subtitle: 'Ocupación actual en tiempo real' },
+  history: { title: 'Mi Historial', subtitle: 'Historial personal de uso del parqueadero' },
+  reports: { title: 'Reportes y Estadísticas', subtitle: 'Análisis de ingresos y ocupación (ADMIN)' },
 };
 
 function AppInner() {
@@ -28,7 +32,8 @@ function AppInner() {
     return <AuthPage onAuthenticated={() => setActivePage('dashboard')} />;
   }
 
-  const meta = PAGE_META[activePage] ?? { title: activePage };
+  // 2. USO SEGURO DE PAGE_META CON CORRECCIÓN DE TIPADO
+  const meta = PAGE_META[activePage] ?? { title: activePage, subtitle: '' };
 
   function renderPage() {
     switch (activePage) {
@@ -37,25 +42,33 @@ function AppInner() {
       case 'capacity':
         return user?.rol === 'ADMIN'
           ? <CapacityPage />
-          : <PlaceholderPage title="Unauthorized" icon="⊗" />;
+          : <PlaceholderPage title="No Autorizado" icon="⊗" />;
       case 'rates':
         return user?.rol === 'ADMIN'
           ? <RatesPage />
-          : <PlaceholderPage title="Unauthorized" icon="⊗" />;
+          : <PlaceholderPage title="No Autorizado" icon="⊗" />;
+          
+      // PÁGINAS REALES CONECTADAS A LA API (US-006 a US-010)
       case 'plans':
-        return <PlaceholderPage title="Subscriber Plans" icon="◇" storyId="US-006" />;
+        return user?.rol === 'ADMIN'
+          ? <PlansPage />
+          : <PlaceholderPage title="No Autorizado" icon="⊗" />;
       case 'vehicles':
-        return <PlaceholderPage title="My Vehicles" icon="◉" storyId="US-007 / US-008" />;
+        return user?.rol === 'ABONADO'
+          ? <VehiclesPage />
+          : <PlaceholderPage title="No Autorizado" icon="⊗" />;
       case 'subscriptions':
-        return <PlaceholderPage title="Subscriptions" icon="◈" storyId="US-009 / US-010 / US-011" />;
+        return <SubscriptionsPage />;
+          
+      // VISTAS CON DATOS ESTÁTICOS PROVISIONALES (Se quedan como placeholders por ahora)
       case 'parking':
-        return <PlaceholderPage title="Parking Entry / Exit" icon="▷" storyId="US-013 / US-014 / US-015" />;
+        return <ParkingPage />;
       case 'active':
-        return <PlaceholderPage title="Active Vehicles" icon="⊡" storyId="US-017" />;
+        return <PlaceholderPage title="Vehículos Activos" icon="⊡" storyId="US-017" />;
       case 'history':
-        return <PlaceholderPage title="My Parking History" icon="≡" storyId="US-018" />;
+        return <PlaceholderPage title="Historial de Estacionamiento" icon="≡" storyId="US-018" />;
       case 'reports':
-        return <PlaceholderPage title="Reports" icon="◫" storyId="US-019 / US-020" />;
+        return <PlaceholderPage title="Reportes" icon="◫" storyId="US-019 / US-020" />;
       default:
         return <DashboardPage />;
     }

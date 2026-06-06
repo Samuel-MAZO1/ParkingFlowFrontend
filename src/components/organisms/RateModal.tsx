@@ -1,144 +1,140 @@
-import React, { useState, useEffect } from 'react';
-import type { Rate, CreateRateRequest, VehicleType } from '../../types';
+import React, { useState } from 'react';
+import type { Rate, CreateRateRequest } from '../../types';
+import { rateService } from '../../services/api';
 import { Input } from '../atoms/Input';
 import { Select } from '../atoms/Select';
-import { Button } from '../atoms/Button';
 import { Toggle } from '../atoms/Toggle';
+import { Button } from '../atoms/Button';
 import { AlertMessage } from '../molecules/AlertMessage';
 
-const VEHICLE_OPTIONS = [
-  { value: 'MOTO', label: '🏍️ Motorcycle' },
-  { value: 'CARRO', label: '🚗 Car' },
-  { value: 'CAMIONETA', label: '🚙 SUV / Truck' },
-];
-
 interface RateModalProps {
-  rate: Rate | null;
-  onSave: (data: CreateRateRequest) => Promise<void>;
+  rate?: Rate | null; // ◄--- BLINDAJE TOTAL: Acepta Rate, null o undefined sin protestar
   onClose: () => void;
+  onSuccess: () => void;
 }
 
-export function RateModal({ rate, onSave, onClose }: RateModalProps) {
-  const [form, setForm] = useState<CreateRateRequest>({
-    tipo_vehiculo: 'CARRO',
-    tarifa_hora: 0,
-    tarifa_dia_completo: 0,
-    aplica_desde: '00:00',
-    aplica_hasta: '23:59',
-    es_festivo: false,
-  });
-  const [saving, setSaving] = useState(false);
+export function RateModal({ rate, onClose, onSuccess }: RateModalProps) {
+  const isEdit = !!rate;
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (rate) {
-      setForm({
-        tipo_vehiculo: rate.tipo_vehiculo,
-        tarifa_hora: rate.tarifa_hora,
-        tarifa_dia_completo: rate.tarifa_dia_completo,
-        aplica_desde: rate.aplica_desde,
-        aplica_hasta: rate.aplica_hasta,
-        es_festivo: rate.es_festivo ?? false,
-      });
-    }
-  }, [rate]);
-
-  function set<K extends keyof CreateRateRequest>(key: K, val: CreateRateRequest[K]) {
-    setForm((prev) => ({ ...prev, [key]: val }));
-  }
+  // El encadenamiento opcional (?.) funciona perfectamente tanto con null como con undefined
+  const [tipoVehiculo, setTipoVehiculo] = useState<string>(rate?.tipo_vehiculo ?? 'CARRO');
+  const [tarifaHora, setTarifaHora] = useState<number>(rate?.tarifa_hora ?? 0);
+  const [tarifaDiaCompleto, setTarifaDiaCompleto] = useState<number>(rate?.tarifa_dia_completo ?? 0);
+  const [aplicaDesde, setAplicaDesde] = useState<string>(rate?.aplica_desde ?? '06:00');
+  const [aplicaHasta, setAplicaHasta] = useState<string>(rate?.aplica_hasta ?? '22:00');
+  const [esFestivo, setEsFestivo] = useState<boolean>(rate?.es_festivo ?? false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (form.tarifa_hora <= 0 || form.tarifa_dia_completo <= 0) {
-      setError('Rates must be greater than zero');
+
+    if (tarifaHora <= 0) {
+      setError('El valor de la tarifa por hora debe ser mayor a $0');
       return;
     }
-    setSaving(true);
+
+    setLoading(true);
     setError('');
+
+    const payload: CreateRateRequest = {
+      tipo_vehiculo: tipoVehiculo as any,
+      tarifa_hora: tarifaHora,
+      tarifa_dia_completo: tarifaDiaCompleto > 0 ? tarifaDiaCompleto : undefined as any,
+      aplica_desde: aplicaDesde,
+      aplica_hasta: aplicaHasta,
+      es_festivo: esFestivo,
+    };
+
     try {
-      await onSave(form);
+      if (isEdit && rate) {
+        await rateService.update(rate.id, payload);
+      } else {
+        await rateService.create(payload);
+      }
+      onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      setError(err instanceof Error ? err.message : 'Ocurrió un error inesperado al procesar la tarifa');
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Modal */}
-      <div className="relative w-full max-w-md bg-slate-900 border border-slate-700/60 rounded-2xl shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/60">
-          <h2 className="text-base font-semibold text-slate-100">
-            {rate ? 'Edit Rate' : 'New Rate'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-slate-500 hover:text-slate-300 transition-colors text-xl leading-none"
-          >
-            ×
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden p-6 animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex justify-between items-center mb-5">
+          <h3 className="text-lg font-bold text-slate-100">
+            {isEdit ? 'Modificar Tarifa Existente' : 'Configurar Nueva Tarifa'}
+          </h3>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-400 text-sm transition-colors">
+            ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 flex flex-col gap-4">
-          {error && <AlertMessage message={error} />}
+        {error && <div className="mb-4"><AlertMessage message={error} /></div>}
 
+        <form onSubmit={handleSubmit} className="space-y-4">
           <Select
-            label="Vehicle Type"
-            value={form.tipo_vehiculo}
-            onChange={(e) => set('tipo_vehiculo', e.target.value as VehicleType)}
-            options={VEHICLE_OPTIONS}
+            label="Tipo de Vehículo"
+            value={tipoVehiculo}
+            onChange={(e) => setTipoVehiculo(e.target.value)}
+            options={[
+              { value: 'CARRO', label: 'Carro' },
+              { value: 'MOTO', label: 'Moto' },
+              { value: 'CAMIONETA', label: 'Camioneta' },
+            ]}
           />
 
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Hourly Rate ($)"
               type="number"
-              min={0}
-              step={100}
-              value={String(form.tarifa_hora)}
-              onChange={(e) => set('tarifa_hora', parseFloat(e.target.value) || 0)}
+              label="Valor Hora ($)"
+              value={tarifaHora.toString()}
+              onChange={(e) => setTarifaHora(parseInt(e.target.value, 10) || 0)}
+              min="0"
             />
             <Input
-              label="Full Day Rate ($)"
               type="number"
-              min={0}
-              step={1000}
-              value={String(form.tarifa_dia_completo)}
-              onChange={(e) => set('tarifa_dia_completo', parseFloat(e.target.value) || 0)}
+              label="Valor Día Completo ($)"
+              value={tarifaDiaCompleto.toString()}
+              onChange={(e) => setTarifaDiaCompleto(parseInt(e.target.value, 10) || 0)}
+              min="0"
+              placeholder="Opcional"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Applies From"
-              type="time"
-              value={form.aplica_desde}
-              onChange={(e) => set('aplica_desde', e.target.value)}
+              type="text"
+              label="Vigente Desde (HH:MM)"
+              value={aplicaDesde}
+              onChange={(e) => setAplicaDesde(e.target.value)}
+              placeholder="06:00"
             />
             <Input
-              label="Applies Until"
-              type="time"
-              value={form.aplica_hasta}
-              onChange={(e) => set('aplica_hasta', e.target.value)}
+              type="text"
+              label="Vigente Hasta (HH:MM)"
+              value={aplicaHasta}
+              onChange={(e) => setAplicaHasta(e.target.value)}
+              placeholder="22:00"
             />
           </div>
 
-          <Toggle
-            label="Holiday rate"
-            checked={form.es_festivo ?? false}
-            onChange={(v) => set('es_festivo', v)}
-          />
+          <div className="bg-slate-950/40 p-3 rounded-xl border border-slate-800/40 flex items-center justify-between">
+            <div>
+              <span className="text-sm font-semibold text-slate-300 block">Tarifa Festiva</span>
+              <span className="text-xs text-slate-500">Aplica exclusivamente para días feriados</span>
+            </div>
+            <Toggle checked={esFestivo} onChange={setEsFestivo} />
+          </div>
 
-          <div className="flex gap-3 pt-2">
-            <Button type="submit" loading={saving} className="flex-1">
-              {rate ? 'Update Rate' : 'Create Rate'}
+          <div className="flex gap-3 pt-2 w-full">
+            <Button type="button" variant="secondary" onClick={onClose} className="w-1/2" disabled={loading}>
+              Cancelar
             </Button>
-            <Button type="button" variant="secondary" onClick={onClose}>
-              Cancel
+            <Button type="submit" className="w-1/2" loading={loading}>
+              {isEdit ? 'Actualizar' : 'Guardar Tarifa'}
             </Button>
           </div>
         </form>

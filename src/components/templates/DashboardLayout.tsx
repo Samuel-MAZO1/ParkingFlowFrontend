@@ -33,7 +33,7 @@ export function DashboardLayout({
         {/* Page content */}
         <div className="flex-1 px-8 py-7 relative">
           {/* Subtle background */}
-          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-teal-500/3 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-100 h-100 bg-teal-500/3 rounded-full blur-[100px] pointer-events-none" />
           <div className="relative z-10">{children}</div>
         </div>
       </main>

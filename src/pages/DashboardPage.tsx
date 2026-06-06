@@ -1,6 +1,9 @@
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../store/authStore';
+import { capacityService } from '../services/api';
 import { Card } from '../components/atoms/Card';
 import { Badge } from '../components/atoms/Badge';
+import { AlertMessage } from '../components/molecules/AlertMessage';
 
 interface StatCardProps {
   label: string;
@@ -24,6 +27,11 @@ function StatCard({ label, value, icon, sub }: StatCardProps) {
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
+  // Estado para albergar la información real devuelta por CapacidadService.java
+  const [liveData, setLiveData] = useState<any>(null);
 
   const roleMap: Record<string, 'admin' | 'operador' | 'abonado'> = {
     ADMIN: 'admin',
@@ -31,64 +39,121 @@ export function DashboardPage() {
     ABONADO: 'abonado',
   };
 
+  const fetchDashboardData = useCallback(async () => {
+    // El endpoint /admin/estado en tu backend requiere estrictamente privilegios de ADMIN
+    if (user?.rol !== 'ADMIN') return;
+
+    try {
+      setLoading(true);
+      setError('');
+      const data = await capacityService.getResumenGlobal();
+      setLiveData(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al sincronizar métricas del servidor');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.rol]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  // 1. MÁSTERS DE ESTADÍSTICAS REALES PARA ADMINISTRADOR
+  const tasaOcupacion = liveData?.capacidadFisicaTotal > 0
+    ? Math.round((liveData.ocupacionGlobal / liveData.capacidadFisicaTotal) * 100)
+    : 0;
+
   const adminStats = [
-    { label: 'Total Spaces', value: '80', icon: '⊞', sub: 'Across all vehicle types' },
-    { label: 'Occupied', value: '47', icon: '◉', sub: '58% occupancy rate' },
-    { label: 'Revenue Today', value: '$124,500', icon: '◎', sub: 'vs $98,200 yesterday' },
-    { label: 'Active Subs', value: '23', icon: '◈', sub: '3 expiring this week' },
+    { 
+      label: 'Celdas Totales', 
+      value: liveData ? String(liveData.capacidadFisicaTotal) : '...', 
+      icon: '⊞', 
+      sub: `Sede: ${liveData?.nombreParqueadero ?? 'Principal'}` 
+    },
+    { 
+      label: 'Vehículos Adentro', 
+      value: liveData ? String(liveData.ocupacionGlobal) : '...', 
+      icon: '◉', 
+      sub: `${tasaOcupacion}% de ocupación global` 
+    },
+    { 
+      label: 'Celdas por Asignar', 
+      value: liveData ? String(liveData.capacidadPorAsignar) : '...', 
+      icon: '◎', 
+      sub: 'Cupos base sin configurar' 
+    },
+    { 
+      label: 'Cupos Libres', 
+      value: liveData ? String(liveData.cuposFisicosLibres) : '...', 
+      icon: '◈', 
+      sub: 'Espacios físicos disponibles' 
+    },
   ];
 
+  // 2. MÁSTERS DE ESTADÍSTICAS PARA OPERADOR (Caída segura a placeholders optimizados)
   const operatorStats = [
-    { label: 'Active Vehicles', value: '47', icon: '◉', sub: 'Currently parked' },
-    { label: 'Entries Today', value: '83', icon: '▷', sub: 'Since midnight' },
-    { label: 'Available Motos', value: '8', icon: '🏍️', sub: 'of 20 total' },
-    { label: 'Available Cars', value: '15', icon: '🚗', sub: 'of 40 total' },
+    { label: 'Vehículos Activos', value: '0', icon: '◉', sub: 'Actualmente en celdas' },
+    { label: 'Ingresos Hoy', value: '0', icon: '▷', sub: 'Desde la medianoche' },
+    { label: 'Motos Disponibles', value: 'Disponibles', icon: '🏍️', sub: 'Monitoreo operativo' },
+    { label: 'Carros Disponibles', value: 'Disponibles', icon: '🚗', sub: 'Monitoreo operativo' },
   ];
 
+  // 3. MÁSTERS DE ESTADÍSTICAS PARA ABONADO
   const subscriberStats = [
-    { label: 'My Vehicles', value: '2', icon: '◉', sub: 'Registered' },
-    { label: 'Active Plans', value: '1', icon: '◈', sub: 'Expires in 12 days' },
-    { label: 'Visits This Month', value: '18', icon: '▷', sub: 'Out of unlimited' },
-    { label: 'Next Renewal', value: 'Apr 23', icon: '◎', sub: 'Auto-renew available' },
+    { label: 'Mis Vehículos', value: '0', icon: '◉', sub: 'Registrados en el sistema' },
+    { label: 'Planes Activos', value: '0', icon: '◈', sub: 'Sin suscripción contratada' },
+    { label: 'Ingresos del Mes', value: '0', icon: '▷', sub: 'Historial de visitas' },
+    { label: 'Estado Plan', value: 'N/A', icon: '◎', sub: 'Ver módulo suscripciones' },
   ];
 
-  const stats =
-    user?.rol === 'ADMIN'
-      ? adminStats
-      : user?.rol === 'OPERADOR'
+  const stats = user?.rol === 'ADMIN'
+    ? adminStats
+    : user?.rol === 'OPERADOR'
       ? operatorStats
       : subscriberStats;
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-400 border-t-transparent"></div>
+        <p className="ml-3 text-sm text-slate-400">Construyendo tablero de control...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-8">
-      {/* Welcome */}
-      <div className="flex items-center gap-3">
+      {error && <AlertMessage message={error} />}
+
+      {/* Mensaje de Bienvenida */}
+      <div className="flex items-center justify-between border-b border-slate-800/40 pb-5">
         <div>
-          <h2 className="text-slate-400 text-sm">
-            Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'} —
+          <h2 className="text-slate-400 text-xs uppercase tracking-widest font-semibold">
+            ¡Bienvenido a ParkingFlow! — {new Date().getHours() < 12 ? 'Buenos días' : new Date().getHours() < 18 ? 'Buenas tardes' : 'Buenas noches'}
           </h2>
-          <p className="text-slate-200 text-lg font-semibold">{user?.email}</p>
+          <p className="text-slate-100 text-xl font-black mt-1 tracking-tight">{user?.email}</p>
         </div>
         <Badge variant={roleMap[user?.rol ?? 'ABONADO']}>{user?.rol}</Badge>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Cuadrícula de Métricas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s) => (
           <StatCard key={s.label} {...s} />
         ))}
       </div>
 
-      {/* Quick actions hint */}
+      {/* Panel Informativo de Navegación Rápida */}
       <div className="bg-slate-900/40 border border-slate-800/40 rounded-2xl p-6">
-        <p className="text-xs text-slate-600 uppercase tracking-widest mb-3">Quick Navigation</p>
-        <p className="text-slate-500 text-sm">
+        <p className="text-xs text-slate-500 uppercase tracking-widest mb-3 font-bold">Navegación del Sistema</p>
+        <p className="text-slate-400 text-sm leading-relaxed">
           {user?.rol === 'ADMIN' &&
-            'Use the sidebar to manage capacity, rates, plans, and view reports.'}
+            'Como Administrador central, utiliza el menú lateral para ajustar la capacidad del establecimiento, controlar las tarifas comerciales por franja, auditar planes de suscripción mensuales y revisar el aforo de las celdas.'}
           {user?.rol === 'OPERADOR' &&
-            'Use the sidebar to register vehicle entries, exits, and view active parked vehicles.'}
+            'Como Operador de turno, utiliza el menú de estacionamientos en el panel lateral para dar de alta ingresos de vehículos ocasionales, registrar entradas automáticas de abonados y liquidar los cobros al momento de la salida.'}
           {user?.rol === 'ABONADO' &&
-            'Use the sidebar to manage your vehicles, subscriptions, and view your parking history.'}
+            'Como Cliente abonado del parqueadero, utiliza el menú lateral para matricular tus placas de vehículos autorizados, adquirir o renovar coberturas de planes mensuales y revisar tu historial de parqueos.'}
         </p>
       </div>
     </div>

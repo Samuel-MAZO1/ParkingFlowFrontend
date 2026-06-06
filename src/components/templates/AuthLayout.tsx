@@ -11,8 +11,8 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-teal-500/5 blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-teal-600/5 blur-[100px]" />
+        <div className="absolute top-[-20%] left-[-10%] w-150 h-150 rounded-full bg-teal-500/5 blur-[120px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-125 h-125 rounded-full bg-teal-600/5 blur-[100px]" />
         {/* Grid overlay */}
         <div
           className="absolute inset-0 opacity-[0.03]"

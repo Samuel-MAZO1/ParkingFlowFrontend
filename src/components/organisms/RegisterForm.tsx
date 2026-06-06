@@ -13,14 +13,15 @@ interface RegisterFormProps {
 
 type FormErrors = Partial<Record<keyof RegisterRequest, string>>;
 
+// Validador local adaptado al idioma oficial del sistema
 function validate(data: RegisterRequest): FormErrors {
   const errors: FormErrors = {};
-  if (!data.nombre.trim()) errors.nombre = 'Required';
-  if (!data.apellido.trim()) errors.apellido = 'Required';
-  if (!data.documento.trim()) errors.documento = 'Required';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.email = 'Invalid email';
-  if (!/^\d{7,10}$/.test(data.telefono)) errors.telefono = 'Must be 7-10 digits';
-  if (data.password.length < 8) errors.password = 'At least 8 characters';
+  if (!data.nombre.trim()) errors.nombre = 'El nombre es obligatorio';
+  if (!data.apellido.trim()) errors.apellido = 'El apellido es obligatorio';
+  if (!data.documento.trim()) errors.documento = 'El documento de identidad es obligatorio';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.email = 'Correo electrónico inválido';
+  if (!/^\d{7,10}$/.test(data.telefono)) errors.telefono = 'El teléfono debe contener entre 7 y 10 dígitos';
+  if (data.password.length < 8) errors.password = 'La contraseña debe tener mínimo 8 caracteres';
   return errors;
 }
 
@@ -44,14 +45,20 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
     e.preventDefault();
     const errs = validate(form);
     if (Object.keys(errs).length) { setErrors(errs); return; }
+    
     setLoading(true);
     setServerError('');
+    
     try {
+      // Envío transaccional hacia el endpoint /api/v1/auth/register de Spring Boot
       const tokens = await authService.register(form);
+      
+      // Persiste la sesión de forma inmediata en el LocalStorage
       login(tokens);
       onSuccess?.();
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : 'Registration failed');
+      // Captura excepciones de negocio del Backend (ej: Correo o Cédula duplicada)
+      setServerError(err instanceof Error ? err.message : 'Error al procesar el registro del abonado');
     } finally {
       setLoading(false);
     }
@@ -62,33 +69,74 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
       {serverError && <AlertMessage message={serverError} />}
 
       <div className="grid grid-cols-2 gap-4">
-        <Input label="First Name" value={form.nombre} onChange={handleChange('nombre')}
-          error={errors.nombre} placeholder="John" autoComplete="given-name" />
-        <Input label="Last Name" value={form.apellido} onChange={handleChange('apellido')}
-          error={errors.apellido} placeholder="Doe" autoComplete="family-name" />
+        <Input 
+          label="Nombre" 
+          value={form.nombre} 
+          onChange={handleChange('nombre')}
+          error={errors.nombre} 
+          placeholder="Juan" 
+          autoComplete="given-name" 
+        />
+        <Input 
+          label="Apellido" 
+          value={form.apellido} 
+          onChange={handleChange('apellido')}
+          error={errors.apellido} 
+          placeholder="Mazo" 
+          autoComplete="family-name" 
+        />
       </div>
 
-      <Input label="ID / Document" value={form.documento} onChange={handleChange('documento')}
-        error={errors.documento} placeholder="1234567890" />
+      <Input 
+        label="Documento de Identidad" 
+        value={form.documento} 
+        onChange={handleChange('documento')}
+        error={errors.documento} 
+        placeholder="1001234567" 
+      />
 
-      <Input label="Email" type="email" value={form.email} onChange={handleChange('email')}
-        error={errors.email} placeholder="you@example.com" autoComplete="email" />
+      <Input 
+        label="Correo Electrónico" 
+        type="email" 
+        value={form.email} 
+        onChange={handleChange('email')}
+        error={errors.email} 
+        placeholder="juan.mazo@itm.edu.co" 
+        autoComplete="email" 
+      />
 
-      <Input label="Phone" type="tel" value={form.telefono} onChange={handleChange('telefono')}
-        error={errors.telefono} placeholder="3001234567" autoComplete="tel" />
+      <Input 
+        label="Teléfono Celular" 
+        type="tel" 
+        value={form.telefono} 
+        onChange={handleChange('telefono')}
+        error={errors.telefono} 
+        placeholder="3001234567" 
+        autoComplete="tel" 
+      />
 
-      <Input label="Password" type="password" value={form.password} onChange={handleChange('password')}
-        error={errors.password} placeholder="••••••••" autoComplete="new-password" />
+      <Input 
+        label="Contraseña" 
+        type="password" 
+        value={form.password} 
+        onChange={handleChange('password')}
+        error={errors.password} 
+        placeholder="Mínimo 8 caracteres" 
+        autoComplete="new-password" 
+      />
 
       <Button type="submit" size="lg" loading={loading} className="w-full mt-2">
-        Create Account
+        Crear Cuenta de Abonado
       </Button>
 
       <p className="text-center text-sm text-slate-500">
-        Already have an account?{' '}
-        <button type="button" onClick={onLoginClick}
-          className="text-teal-400 hover:text-teal-300 font-medium transition-colors">
-          Sign in
+        ¿Ya tienes una cuenta?{' '}
+        <button 
+          type="button" 
+          onClick={onLoginClick}
+          className="text-teal-400 hover:text-teal-300 font-medium transition-colors"
+        >
+          Inicia Sesión
         </button>
       </p>
     </form>

@@ -19,15 +19,28 @@ export function LoginForm({ onSuccess, onRegisterClick }: LoginFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || !password) { setError('Please fill in all fields'); return; }
+    
+    // Validaciones locales iniciales en español
+    if (!email || !password) { 
+      setError('Por favor, completa todos los campos requeridos'); 
+      return; 
+    }
+    
     setLoading(true);
     setError('');
+    
     try {
+      // Petición real al controlador de Spring Boot (/api/v1/auth/login)
       const tokens = await authService.login({ email, password });
+      
+      // Persiste los tokens y actualiza el estado global de usuario de forma síncrona
       login(tokens);
+      
+      // Ejecuta el callback para dar paso al DashboardLayout
       onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid credentials');
+      // Captura excepciones controladas del backend (ej: Credenciales inválidas)
+      setError(err instanceof Error ? err.message : 'Credenciales de acceso inválidas');
     } finally {
       setLoading(false);
     }
@@ -38,16 +51,16 @@ export function LoginForm({ onSuccess, onRegisterClick }: LoginFormProps) {
       {error && <AlertMessage message={error} />}
 
       <Input
-        label="Email"
+        label="Correo Electrónico"
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="you@example.com"
+        placeholder="usuario@itm.edu.co"
         autoComplete="email"
       />
 
       <Input
-        label="Password"
+        label="Contraseña"
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -56,17 +69,17 @@ export function LoginForm({ onSuccess, onRegisterClick }: LoginFormProps) {
       />
 
       <Button type="submit" size="lg" loading={loading} className="w-full mt-2">
-        Sign In
+        Iniciar Sesión
       </Button>
 
       <p className="text-center text-sm text-slate-500">
-        Don't have an account?{' '}
+        ¿No tienes una cuenta?{' '}
         <button
           type="button"
           onClick={onRegisterClick}
           className="text-teal-400 hover:text-teal-300 font-medium transition-colors"
         >
-          Register as subscriber
+          Regístrate como abonado
         </button>
       </p>
     </form>

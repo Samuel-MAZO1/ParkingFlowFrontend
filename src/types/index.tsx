@@ -71,3 +71,36 @@ export interface CreateRateRequest {
   aplica_hasta: string;
   es_festivo?: boolean;
 }
+
+
+export interface PlanAbonado {
+  id: number;
+  nombre: string;
+  tipo_vehiculo: 'MOTO' | 'CARRO' | 'CAMIONETA';
+  precio_mensual: number;
+  entradas_ilimitadas: boolean;
+  max_entradas?: number;
+  horario_inicio: string;
+  horario_fin: string;    
+  activo: boolean;
+}
+
+export interface Vehiculo {
+  id: number;
+  placa: string;
+  tipo_vehiculo: 'MOTO' | 'CARRO' | 'CAMIONETA';
+  marca: string;
+  modelo: string;
+  color: string;
+}
+
+export interface Suscripcion {
+  id: number;
+  vehiculo: Vehiculo;
+  plan: PlanAbonado;
+  fecha_inicio: string;
+  fecha_fin: string;
+  estado: 'ACTIVA' | 'VENCIDA' | 'CANCELADA';
+  entradas_usadas: number;
+  referencia_pago: string;
+}

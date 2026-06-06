@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import type { Rate, CreateRateRequest} from '../../types';
+import { useEffect, useState, useCallback } from 'react';
+import type { Rate } from '../../types';
 import { rateService } from '../../services/api';
 import { RateRow } from '../molecules/RateRow';
 import { AlertMessage } from '../molecules/AlertMessage';
@@ -14,26 +14,33 @@ export function RatesManager() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRate, setEditingRate] = useState<Rate | null>(null);
 
-  async function fetchRates() {
+  const fetchRates = useCallback(async () => {
     try {
+      setError('');
       const data = await rateService.getAll();
       setRates(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load rates');
+      setError(e instanceof Error ? e.message : 'Error al cargar las tarifas desde el servidor');
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { fetchRates(); }, []);
+  useEffect(() => { 
+    fetchRates(); 
+  }, [fetchRates]);
 
   async function handleDeactivate(id: number) {
+    if (!window.confirm('¿Estás seguro de que deseas desactivar esta tarifa?')) {
+      return;
+    }
+    
     setDeactivatingId(id);
     try {
       await rateService.deactivate(id);
       setRates((prev) => prev.map((r) => r.id === id ? { ...r, activa: false } : r));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to deactivate');
+      setError(e instanceof Error ? e.message : 'Error al desactivar la tarifa seleccionada');
     } finally {
       setDeactivatingId(null);
     }
@@ -49,15 +56,9 @@ export function RatesManager() {
     setModalOpen(true);
   }
 
-  async function handleSave(data: CreateRateRequest) {
-    if (editingRate) {
-      const updated = await rateService.update(editingRate.id, data);
-      setRates((prev) => prev.map((r) => r.id === editingRate.id ? updated : r));
-    } else {
-      const created = await rateService.create(data);
-      setRates((prev) => [...prev, created]);
-    }
+  function handleModalSuccess() {
     setModalOpen(false);
+    fetchRates();
   }
 
   if (loading) {
@@ -74,7 +75,7 @@ export function RatesManager() {
 
       <div className="flex justify-end">
         <Button onClick={handleNew} leftIcon={<span>＋</span>}>
-          New Rate
+          Nueva Tarifa
         </Button>
       </div>
 
@@ -82,7 +83,7 @@ export function RatesManager() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-800/80">
-              {['Vehicle', 'Hourly', 'Full Day', 'Schedule', 'Type', 'Status', ''].map((h) => (
+              {['Vehículo', 'Valor Hora', 'Día Completo', 'Horario', 'Tipo', 'Estado', ''].map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-widest">
                   {h}
                 </th>
@@ -93,7 +94,7 @@ export function RatesManager() {
             {rates.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-12 text-center text-slate-600 text-sm">
-                  No rates configured yet
+                  No hay tarifas configuradas en el sistema actualmente
                 </td>
               </tr>
             ) : (
@@ -114,8 +115,8 @@ export function RatesManager() {
       {modalOpen && (
         <RateModal
           rate={editingRate}
-          onSave={handleSave}
           onClose={() => setModalOpen(false)}
+          onSuccess={handleModalSuccess}
         />
       )}
     </div>

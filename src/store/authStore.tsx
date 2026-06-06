@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useCallback}from 'react';
-import type {ReactNode} from 'react'
-import type { User, AuthTokens, TokenPayload } from '../types';
+import { createContext, useContext, useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
+import type { User, AuthTokens } from '../types';
 
 interface AuthState {
   user: User | null;
@@ -9,39 +9,67 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  login: (tokens: AuthTokens) => void;
+  login: (tokens: any) => void;
   logout: () => void;
-  updateTokens: (tokens: AuthTokens) => void;
+  updateTokens: (tokens: any) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function parseJwt(token: string): TokenPayload | null {
+// Decodificador seguro para Claims de Spring Boot (sub, email, roles)
+function parseJwt(token: string): any {
   try {
     const base64 = token.split('.')[1];
     const decoded = JSON.parse(atob(base64));
-    return decoded as TokenPayload;
+    return decoded;
   } catch {
     return null;
   }
 }
 
+// Mapeador para transformar las Claims del JWT al modelo User de React
+function mapPayloadToUser(payload: any): User | null {
+  if (!payload) return null;
+  
+  // Extrae el rol quitando el prefijo "ROLE_" (Ej: ROLE_ADMIN -> ADMIN)
+  const rawRol = payload.roles && payload.roles.length > 0 
+    ? payload.roles[0].replace('ROLE_', '') 
+    : 'ABONADO';
+
+  return {
+    id: payload.sub ? parseInt(payload.sub, 10) : 0,
+    email: payload.email || '',
+    rol: rawRol,
+    activo: true
+  };
+}
+
+// Normaliza el DTO del backend hacia el formato estándar del Front
+function normalizeTokens(tokens: any): AuthTokens {
+  return {
+    access_token: tokens.access_token || tokens.accesToken, // Resuelve el typo de Spring 'accesToken'
+    refresh_token: tokens.refresh_token || tokens.refreshToken
+  };
+}
+
 function getStoredAuth(): AuthState {
   try {
-    const tokens = localStorage.getItem('pf_tokens');
-    if (tokens) {
-      const parsed = JSON.parse(tokens) as AuthTokens;
-      const payload = parseJwt(parsed.access_token);
+    const tokensStr = localStorage.getItem('pf_tokens');
+    if (tokensStr) {
+      const parsed = JSON.parse(tokensStr);
+      const normalized = normalizeTokens(parsed);
+      const payload = parseJwt(normalized.access_token);
+      
       if (payload) {
         return {
-          tokens: parsed,
-          user: { id: payload.userId, email: payload.email, rol: payload.rol, activo: true },
+          tokens: normalized,
+          user: mapPayloadToUser(payload),
           isAuthenticated: true,
         };
       }
     }
   } catch {
-    // ignore
+    // Ignore context errors
   }
   return { user: null, tokens: null, isAuthenticated: false };
 }
@@ -49,14 +77,14 @@ function getStoredAuth(): AuthState {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(getStoredAuth);
 
-  const login = useCallback((tokens: AuthTokens) => {
-    const payload = parseJwt(tokens.access_token);
-    localStorage.setItem('pf_tokens', JSON.stringify(tokens));
+  const login = useCallback((rawTokens: any) => {
+    const normalized = normalizeTokens(rawTokens);
+    const payload = parseJwt(normalized.access_token);
+    
+    localStorage.setItem('pf_tokens', JSON.stringify(normalized));
     setState({
-      tokens,
-      user: payload
-        ? { id: payload.userId, email: payload.email, rol: payload.rol, activo: true }
-        : null,
+      tokens: normalized,
+      user: mapPayloadToUser(payload),
       isAuthenticated: true,
     });
   }, []);
@@ -66,15 +94,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ user: null, tokens: null, isAuthenticated: false });
   }, []);
 
-  const updateTokens = useCallback((tokens: AuthTokens) => {
-    const payload = parseJwt(tokens.access_token);
-    localStorage.setItem('pf_tokens', JSON.stringify(tokens));
+  const updateTokens = useCallback((rawTokens: any) => {
+    const normalized = normalizeTokens(rawTokens);
+    const payload = parseJwt(normalized.access_token);
+    
+    localStorage.setItem('pf_tokens', JSON.stringify(normalized));
     setState((prev) => ({
       ...prev,
-      tokens,
-      user: payload
-        ? { id: payload.userId, email: payload.email, rol: payload.rol, activo: true }
-        : prev.user,
+      tokens: normalized,
+      user: payload ? mapPayloadToUser(payload) : prev.user,
     }));
   }, []);
 
